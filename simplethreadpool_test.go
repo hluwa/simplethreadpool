@@ -1,14 +1,12 @@
 package simplethreadpool
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
 
-func makeFunc(i int) func() {
+func makeFunc(_ int) func() {
 	return func() {
-		fmt.Println(i)
 		time.Sleep(time.Second)
 	}
 }
