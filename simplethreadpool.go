@@ -3,6 +3,8 @@ package simplethreadpool
 type SimpleThreadPool struct {
 	workList    []func()
 	workerCount int
+
+	exceptionHandler func(index int, workFunc func(), panic interface{})
 }
 
 func (pool *SimpleThreadPool) Sync() {
@@ -10,6 +12,11 @@ func (pool *SimpleThreadPool) Sync() {
 	waitChannel := make(chan int)
 	for i, f := range pool.workList {
 		go func(i int, f func()) {
+			defer func() {
+				if e := recover(); e != nil && pool.exceptionHandler != nil {
+					pool.exceptionHandler(i, f, e)
+				}
+			}()
 			defer func() { waitChannel <- i }()
 			poolChannel <- i
 			defer func() { <-poolChannel }()
@@ -26,6 +33,10 @@ func (pool *SimpleThreadPool) Sync() {
 
 func (pool *SimpleThreadPool) Put(f func()) {
 	pool.workList = append(pool.workList, f)
+}
+
+func (pool *SimpleThreadPool) OnException(handler func(index int, workFunc func(), panic interface{})) {
+	pool.exceptionHandler = handler
 }
 
 func NewSimpleThreadPool(workerCount int) *SimpleThreadPool {
